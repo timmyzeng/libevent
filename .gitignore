@@ -1,0 +1,2 @@
+libevent-book/!*.c
+libevent-book/!*.h

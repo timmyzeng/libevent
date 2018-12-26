@@ -103,3 +103,100 @@ void start_counting_bytes(void){
                             replacement_free);
 }
 #endif
+
+#if 0
+/**********************************
+ * Example: Debugging event usage *
+***********************************/
+#include <event2/event.h>
+#include <event2/event_struct.h>
+
+#include <stdlib.h>
+
+void cb(evutil_socket_t fd, short what, void* ptr){
+    struct event* ev = (struct event*)ptr;
+
+    if (ev)
+        event_debug_unassign(ev);
+}
+
+void mainloop(evutil_socket_t fdl, evutil_socket_t fd2, int debug_mode){
+    struct event_base* base;
+    struct event event_on_stack, *event_on_heap;
+
+    if (debug_mode)
+        event_enable_debug_mode();
+
+    base = event_base_new();
+
+    event_on_heap = event_new(base, fdl, EV_READ, cb, NULL);
+    event_assign(&event_on_stack, base, fd2, EV_READ, cb, &event_on_stack);
+
+    event_add(event_on_heap, NULL);
+    event_add(&event_on_stack, NULL);
+
+    event_base_dispatch(base);
+
+    event_free(event_on_heap);
+    event_base_free(base);
+}
+#endif
+
+#if 0
+/********************************
+ * Example: Compile-time checks *
+*********************************/
+#include <event2/event.h>
+
+#if !defined(LIBEVENT_VERSION_NUMBER) || LIBEVENT_VERSION_NUMBER < 0x02000100
+#error "this version of Libevent is not supported; Get 2.0.1-alpha or later."
+#endif
+
+int make_sandwitch(void){
+# if LIBEVENT_VERSION_NUMBER >= 0x06000500
+    evutil_me_a_sandwich();
+    return 0;
+#else
+    return -1;
+#endif
+}
+#endif
+
+#if 0
+#endif
+/****************************
+ * Example: Run-time checks *
+*****************************/
+#include <event2/event.h>
+#include <string.h>
+
+int check_for_old_version(void){
+    const char* v = event_get_version();
+    if (!strncmp(v, "0.", 2) ||
+        !strncmp(v, "1.1", 3) ||
+        !strncmp(v, "1.2", 3) ||
+        !strncmp(v, "1.3", 3)){
+        printf("version is very old\n");
+        return -1;
+    } else {
+        printf("Runing with Libevent version %s\n", v);
+        return 0;
+    }
+}
+
+int check_version_match(void){
+    ev_uint32_t v_compile, v_run;
+    v_compile = LIBEVENT_VERSION_NUMBER;
+    v_run = event_get_version_number();
+    if ((v_compile & 0xffff0000) != (v_run & 0xffff0000)) {
+        printf("Running with a Libevent version (%s) very different from the"
+               "one we were built with (%s). \n", event_get_version(), LIBEVENT_VERSION);
+        return -1;
+    }
+    return 0;
+}
+
+int main(){
+    check_for_old_version();
+    check_version_match();
+}
